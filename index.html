@@ -126,6 +126,7 @@
     <div class="container">
         <h1>Assistente ai Regali</h1>
         
+        <!-- SEZIONE 1: GESTIONE DEL MIO PROFILO -->
         <div class="section-card">
             <h2>1. La Mia Lista dei Desideri</h2>
             <p>Seleziona il tuo profilo e inserisci i regali che vorresti ricevere.</p>
@@ -152,6 +153,7 @@
             <div id="status-msg" class="success-alert"></div>
         </div>
 
+        <!-- SEZIONE 2: SCELTA DEL REGALO PER GLI ALTRI -->
         <div class="section-card">
             <h2>2. Trova un Regalo per un Amico</h2>
             <p>Scegli la persona a cui vuoi fare un regalo e consulta l'assistente.</p>
@@ -164,12 +166,13 @@
             </select>
             <button onclick="startChat()">Avvia Assistente AI</button>
 
+            <!-- CONTENITORE DELLA CHAT -->
             <div id="chat-container">
                 <h2>Chat con l'Assistente</h2>
                 <div id="chat-box">
                     <div class="message bot-msg">Seleziona un amico sopra per iniziare.</div>
                 </div>
-                <input type="text" id="chat-input" placeholder="Es: Cosa desidera per l'abbigliamento?">
+                <input type="text" id="chat-input" placeholder="Es: Voglio regalargli uno zaino da montagna...">
                 <button onclick="sendMessage()">Invia Messaggio</button>
             </div>
         </div>
@@ -178,7 +181,7 @@
     <script>
         const wishlists = {
             mario: [
-                { descrizione: "Giacca a vento North Face", categoria: "abbigliamento", link: "#", immagine: "" },
+                { descrizione: "Giacca a vento North Face", categoria: "abbigliamento", link: "www.negozio.it/giacca", immagine: "img1.jpg" },
                 { descrizione: "Libro di fantascienza", categoria: "libri", link: "#", immagine: "" }
             ],
             sara: [
@@ -186,7 +189,7 @@
                 { descrizione: "Trolley da cabina", categoria: "viaggi", link: "#", immagine: "" }
             ],
             luca: [
-                { descrizione: "Zaino da trekking", categoria: "viaggi", link: "#", immagine: "" }
+                { descrizione: "Zaino da trekking", categoria: "viaggi", link: "www.sport.it/zaino-verde", immagine: "zaino_foto.png" }
             ]
         };
 
@@ -251,28 +254,47 @@
 
             document.getElementById('chat-container').style.display = 'block';
             const nomeTarget = select.options[select.selectedIndex].text;
-            document.getElementById('chat-box').innerHTML = `<div class="message bot-msg">Sto esaminando la lista di ${nomeTarget}. Chiedimi pure in quale categoria vorresti cercare un regalo!</div>`;
+            document.getElementById('chat-box').innerHTML = `<div class="message bot-msg">Sto esaminando la lista di ${nomeTarget}. Chiedimi pure in quale categoria vorresti cercare o scrivi un oggetto specifico!</div>`;
         }
 
         function sendMessage() {
             const input = document.getElementById('chat-input');
-            const message = input.value.toLowerCase();
+            const message = input.value.toLowerCase().trim();
             if (!message) return;
 
             const chatBox = document.getElementById('chat-box');
             chatBox.innerHTML += `<div class="message user-msg">Tu: ${input.value}</div>`;
             
             setTimeout(() => {
-                let botReply = "Non ho trovato elementi specifici nella sua lista dei desideri per questa richiesta.";
+                let botReply = "Mmm, ho analizzato descrizioni, categorie, link e immagini, ma non ho trovato nulla di simile nella sua lista.";
                 
                 if (targetUser && wishlists[targetUser]) {
-                    const regaliTrovati = wishlists[targetUser].filter(regalo => 
-                        message.includes(regalo.categoria) || message.includes(regalo.descrizione.toLowerCase())
-                    );
+                    // Scompone il messaggio in parole singole, ignorando punteggiatura
+                    // e scartando parole di 1 o 2 lettere (es. "un", "il", "di") per evitare falsi positivi
+                    const paroleRicerca = message.split(/[\s,.'?!]+/).filter(parola => parola.length > 2);
+
+                    const regaliTrovati = wishlists[targetUser].filter(regalo => {
+                        const desc = regalo.descrizione.toLowerCase();
+                        const cat = regalo.categoria.toLowerCase();
+                        const link = regalo.link.toLowerCase();
+                        const img = regalo.immagine.toLowerCase();
+
+                        // 1. Il messaggio completo combacia con categoria o descrizione?
+                        if (message.includes(cat) || message.includes(desc)) return true;
+
+                        // 2. Controllo granulare: almeno una delle parole chiave del messaggio
+                        // è presente in uno dei quattro campi del regalo?
+                        return paroleRicerca.some(parola => 
+                            desc.includes(parola) || 
+                            cat.includes(parola) || 
+                            link.includes(parola) || 
+                            img.includes(parola)
+                        );
+                    });
 
                     if (regaliTrovati.length > 0) {
-                        const listaTesto = regaliTrovati.map(r => `• ${r.descrizione} (${r.categoria})`).join('<br>');
-                        botReply = `Nella lista dei desideri ho trovato questi elementi pertinenti:<br>${listaTesto}`;
+                        const listaTesto = regaliTrovati.map(r => `• ${r.descrizione} (Categoria: ${r.categoria})`).join('<br>');
+                        botReply = `Ho trovato queste corrispondenze nei suoi desideri:<br>${listaTesto}`;
                     }
                 }
                 
