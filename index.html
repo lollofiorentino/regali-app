@@ -23,18 +23,21 @@
             border-radius: 12px;
             box-shadow: 0 4px 12px rgba(0,0,0,0.05);
         }
-        h1, h2 {
-            margin-bottom: 10px;
+        h1, h2, h3 {
+            text-align: center;
+            margin-bottom: 15px;
         }
         select, input, button {
             font-family: 'Alegreya', serif;
-            margin: 10px 0;
+            margin: 10px auto;
             padding: 12px;
             font-size: 18px;
             width: 85%;
+            display: block;
             text-align: center;
             border: 1px solid #ccc;
             border-radius: 6px;
+            box-sizing: border-box;
         }
         button {
             background-color: #3498db;
@@ -46,11 +49,13 @@
         button:hover {
             background-color: #2980b9;
         }
-        #chat-container {
-            display: none;
+        .section {
             margin-top: 30px;
             border-top: 2px solid #eee;
             padding-top: 20px;
+        }
+        #chat-container {
+            display: none;
         }
         #chat-box {
             border: 1px solid #e0e0e0;
@@ -67,23 +72,48 @@
         }
         .bot-msg { color: #d35400; font-weight: bold; }
         .user-msg { color: #2980b9; }
+        .success-alert {
+            color: #27ae60;
+            font-weight: bold;
+            margin-top: 10px;
+        }
     </style>
 </head>
 <body>
 
     <div class="container">
         <h1>Assistente ai Regali</h1>
-        <p>Seleziona un utente per analizzare la sua lista dei desideri.</p>
+        
+        <div class="section">
+            <h2>Scegli chi riceverà il regalo</h2>
+            <select id="user-select" onchange="updateWishlistContext()">
+                <option value="">-- Scegli un utente --</option>
+                <option value="mario">Mario</option>
+                <option value="sara">Sara</option>
+            </select>
+            <button onclick="startChat()">Avvia Assistente AI</button>
+        </div>
 
-        <select id="user-select">
-            <option value="">-- Scegli un utente --</option>
-            <option value="mario">Mario (Interessi: Abbigliamento, Libri)</option>
-            <option value="sara">Sara (Interessi: Elettronica, Viaggi)</option>
-        </select>
+        <div class="section">
+            <h2>Aggiungi un Desiderio alla tua lista</h2>
+            <p style="font-size: 16px; color: #7f8c8d;">Simula l'inserimento per l'utente attualmente selezionato sopra</p>
+            
+            <input type="text" id="wish-desc" placeholder="Cosa desideri? (es. Felpa con cappuccio)">
+            <input type="text" id="wish-link" placeholder="Link al sito web (opzionale)">
+            <input type="text" id="wish-img" placeholder="URL Immagine (opzionale)">
+            <select id="wish-cat">
+                <option value="altro">-- Seleziona Categoria --</option>
+                <option value="abbigliamento">Abbigliamento</option>
+                <option value="elettronica">Elettronica</option>
+                <option value="libri">Libri</option>
+                <option value="viaggi">Viaggi</option>
+                <option value="altro">Altro</option>
+            </select>
+            <button onclick="addWish()">Salva nei miei Desideri</button>
+            <div id="status-msg" class="success-alert"></div>
+        </div>
 
-        <button onclick="startChat()">Avvia Assistente AI</button>
-
-        <div id="chat-container">
+        <div id="chat-container" class="section">
             <h2>Chatta con l'Assistente</h2>
             <div id="chat-box">
                 <div class="message bot-msg">Ciao! Sono l'assistente. Chiedimi cosa regalare!</div>
@@ -94,13 +124,60 @@
     </div>
 
     <script>
-        // Database fittizio per simulare il funzionamento
+        // Database locale temporaneo
         const wishlists = {
-            mario: { abbigliamento: "Giacca a vento North Face (link), Maglia di lana", altro: "Libro di fantascienza" },
-            sara: { elettronica: "Cuffie wireless (link), Smartwatch", altro: "Trolley da cabina" }
+            mario: [
+                { descrizione: "Giacca a vento North Face", categoria: "abbigliamento", link: "#", immagine: "" },
+                { descrizione: "Libro di fantascienza", categoria: "libri", link: "#", immagine: "" }
+            ],
+            sara: [
+                { descrizione: "Cuffie wireless", categoria: "elettronica", link: "#", immagine: "" },
+                { descrizione: "Trolley da cabina", categoria: "viaggi", link: "#", immagine: "" }
+            ]
         };
 
         let selectedUser = "";
+
+        function updateWishlistContext() {
+            selectedUser = document.getElementById('user-select').value;
+        }
+
+        // Funzione per inserire un nuovo desiderio nell'app
+        function addWish() {
+            if (!selectedUser) {
+                alert("Per favore, seleziona prima un utente nel menu in alto per assegnargli il desiderio.");
+                return;
+            }
+
+            const desc = document.getElementById('wish-desc').value;
+            const link = document.getElementById('wish-link').value;
+            const img = document.getElementById('wish-img').value;
+            const cat = document.getElementById('wish-cat').value;
+
+            if (!desc) {
+                alert("Inserisci almeno una descrizione del regalo!");
+                return;
+            }
+
+            // Aggiunge il desiderio nell'array dell'utente selezionato
+            wishlists[selectedUser].push({
+                descrizione: desc,
+                categoria: cat,
+                link: link || "#",
+                immagine: img || ""
+            });
+
+            // Pulisce i campi del modulo
+            document.getElementById('wish-desc').value = "";
+            document.getElementById('wish-link').value = "";
+            document.getElementById('wish-img').value = "";
+            document.getElementById('wish-cat').value = "altro";
+
+            // Mostra un messaggio di conferma temporaneo
+            const status = document.getElementById('status-msg');
+            status.innerText = "Desiderio salvato con successo!";
+            setTimeout(() => { status.innerText = ""; }, 3000);
+        }
 
         function startChat() {
             const select = document.getElementById('user-select');
@@ -110,7 +187,9 @@
                 return;
             }
             document.getElementById('chat-container').style.display = 'block';
-            document.getElementById('chat-box').innerHTML = `<div class="message bot-msg">Hai selezionato ${select.options[select.selectedIndex].text}. Cosa vorresti regalare?</div>`;
+            
+            const nomeUtente = select.options[select.selectedIndex].text;
+            document.getElementById('chat-box').innerHTML = `<div class="message bot-msg">Hai selezionato la lista di ${nomeUtente}. Chiedimi pure consiglio sui suoi regali!</div>`;
         }
 
         function sendMessage() {
@@ -121,13 +200,19 @@
             const chatBox = document.getElementById('chat-box');
             chatBox.innerHTML += `<div class="message user-msg">Tu: ${input.value}</div>`;
             
-            // Logica simulata del bot
             setTimeout(() => {
-                let botReply = "Interessante! Purtroppo non ho trovato nulla di specifico nella sua lista per questa categoria.";
-                if (message.includes('abbigliamento') && selectedUser === 'mario') {
-                    botReply = `Nella categoria abbigliamento, Mario desidera: ${wishlists.mario.abbigliamento}.`;
-                } else if (message.includes('elettronica') && selectedUser === 'sara') {
-                    botReply = `Nella categoria elettronica, Sara desidera: ${wishlists.sara.elettronica}.`;
+                let botReply = "Mmm, non ho trovato idee regalo specifiche per questa richiesta nella sua lista.";
+                
+                // Cerca se nei desideri dell'utente c'è qualcosa che corrisponde alla categoria scritta nella chat
+                if (selectedUser && wishlists[selectedUser]) {
+                    const regaliFiltrati = wishlists[selectedUser].filter(regalo => 
+                        message.includes(regalo.categoria) || message.includes(regalo.descrizione.toLowerCase())
+                    );
+
+                    if (regaliFiltrati.length > 0) {
+                        const listaTesto = regaliFiltrati.map(r => `• ${r.descrizione} (Categoria: ${r.categoria})`).join('<br>');
+                        botReply = `Ecco cosa ho trovato nella sua lista dei desideri inerente alla tua richiesta:<br>${listaTesto}`;
+                    }
                 }
                 
                 chatBox.innerHTML += `<div class="message bot-msg">Bot: ${botReply}</div>`;
