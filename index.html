@@ -7,30 +7,31 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Alegreya:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
-    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
     <style>
-        body { font-family: 'Alegreya', serif; text-align: center; background: linear-gradient(135deg, #0f172a, #1e3a8a, #3b82f6); background-attachment: fixed; color: #ffffff; padding: 30px 20px; margin: 0; }
+        body { font-family: 'Alegreya', serif; text-align: center; background: linear-gradient(135deg, #0f172a, #1e3a8a, #1e293b); background-attachment: fixed; color: #ffffff; padding: 30px 20px; margin: 0; }
         .container { max-width: 650px; margin: 0 auto; }
         h1 { font-size: 36px; font-weight: 700; margin-bottom: 30px; text-shadow: 0 2px 4px rgba(0,0,0,0.8); }
-        h2 { font-size: 24px; margin-bottom: 15px; color: #93c5fd; }
+        h2 { font-size: 24px; margin-bottom: 15px; color: #94d2bd; }
         p { font-size: 18px; color: #e2e8f0; }
-        .section-card { background: rgba(0, 0, 0, 0.4); border: 1px solid rgba(59, 130, 246, 0.5); backdrop-filter: blur(8px); padding: 30px; border-radius: 16px; margin-bottom: 30px; box-shadow: 0 10px 25px rgba(0,0,0,0.5); }
-        select, input { font-family: 'Alegreya', serif; margin: 12px auto; padding: 14px; font-size: 18px; width: 90%; display: block; text-align: center; border: 2px solid #3b82f6; border-radius: 8px; box-sizing: border-box; background-color: #ffffff; color: #0f172a; }
-        button { font-family: 'Alegreya', serif; margin: 12px auto; padding: 14px; font-size: 18px; width: 90%; display: block; text-align: center; border-radius: 8px; background: linear-gradient(135deg, #2563eb, #1d4ed8); color: #ffffff; border: none; cursor: pointer; font-weight: 700; transition: all 0.3s ease; }
-        button:hover { background: linear-gradient(135deg, #3b82f6, #2563eb); transform: translateY(-2px); }
+        .section-card { background: rgba(0, 0, 0, 0.4); border: 1px solid rgba(0, 109, 119, 0.5); backdrop-filter: blur(8px); padding: 30px; border-radius: 16px; margin-bottom: 30px; box-shadow: 0 10px 25px rgba(0,0,0,0.5); }
         
-        /* Classi per mostrare/nascondere le sezioni */
+        select, input { font-family: 'Alegreya', serif; margin: 12px auto; padding: 14px; font-size: 18px; width: 90%; display: block; text-align: center; border: 2px solid #0081a7; border-radius: 8px; box-sizing: border-box; background-color: #ffffff; color: #0f172a; transition: all 0.3s ease;}
+        select:focus, input:focus { outline: none; border-color: #00b4d8; box-shadow: 0 0 8px rgba(0, 180, 216, 0.6); }
+        
+        button { font-family: 'Alegreya', serif; margin: 12px auto; padding: 14px; font-size: 18px; width: 90%; display: block; text-align: center; border-radius: 8px; background: linear-gradient(135deg, #006d77, #005f73); color: #ffffff; border: none; cursor: pointer; font-weight: 700; transition: all 0.3s ease; box-shadow: 0 4px 12px rgba(0, 109, 119, 0.4); }
+        button:hover { background: linear-gradient(135deg, #0a9396, #006d77); transform: translateY(-2px); }
+        
         .hidden { display: none !important; }
         .menu-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; width: 90%; margin: 0 auto; }
         .menu-grid button { margin: 0; width: 100%; }
         
-        #chat-container { display: none; margin-top: 20px; border-top: 1px solid rgba(147, 197, 253, 0.3); padding-top: 25px; }
-        #chat-box { border: 1px solid rgba(59, 130, 246, 0.4); height: 250px; overflow-y: auto; padding: 15px; background: rgba(15, 23, 42, 0.9); border-radius: 8px; margin-bottom: 15px; text-align: center; }
+        #chat-container { display: none; margin-top: 20px; border-top: 1px solid rgba(0, 109, 119, 0.3); padding-top: 25px; }
+        #chat-box { border: 1px solid rgba(0, 109, 119, 0.4); height: 250px; overflow-y: auto; padding: 15px; background: rgba(15, 23, 42, 0.9); border-radius: 8px; margin-bottom: 15px; text-align: center; }
         .message { margin-bottom: 12px; font-size: 18px; line-height: 1.4; }
-        .bot-msg { color: #fb923c; font-weight: bold; }
-        .user-msg { color: #38bdf8; }
-        .alert-msg { font-weight: bold; margin-top: 10px; font-size: 18px; color: #4ade80; text-shadow: 0 1px 2px rgba(0,0,0,0.8); }
-        .current-user-banner { font-size: 20px; color: #34d399; margin-bottom: 20px; font-weight: bold; }
+        .bot-msg { color: #e9c46a; font-weight: bold; }
+        .user-msg { color: #94d2bd; }
+        .alert-msg { font-weight: bold; margin-top: 10px; font-size: 18px; color: #2a9d8f; text-shadow: 0 1px 2px rgba(0,0,0,0.8); }
+        .current-user-banner { font-size: 20px; color: #e9c46a; margin-bottom: 20px; font-weight: bold; }
     </style>
 </head>
 <body>
@@ -43,10 +44,10 @@
             <p>Seleziona il tuo nome per entrare o creane uno nuovo se non sei in elenco.</p>
             
             <select id="my-user-select" onchange="loginUser()">
-                <option value="">-- Seleziona il tuo profilo --</option>
+                <option value="">-- Caricamento utenti in corso... --</option>
             </select>
             
-            <hr style="border: 0; border-top: 1px solid rgba(59, 130, 246, 0.3); margin: 20px 0;">
+            <hr style="border: 0; border-top: 1px solid rgba(0, 109, 119, 0.3); margin: 20px 0;">
             
             <input type="text" id="new-user-name" placeholder="Oppure inserisci un nuovo nome">
             <button onclick="createUser()">Crea Nuovo Profilo</button>
@@ -60,31 +61,37 @@
                 <h2>Cosa vuoi fare oggi?</h2>
                 <div class="menu-grid">
                     <button onclick="showSection('wishlist-section')">Aggiorna i tuoi desideri</button>
-                    <button onclick="showSection('gift-section')">Fai un regalo a un amico</button>
+                    <button onclick="showSection('gift-section')">Fai un regalo a qualcuno</button>
                 </div>
-                <button onclick="logout()" style="background: #ef4444; width: auto; font-size: 14px; padding: 6px 15px; margin-top: 15px;">Cambia Utente</button>
+                <button onclick="logout()" style="background: #e63946; width: auto; font-size: 14px; padding: 6px 15px; margin-top: 15px;">Cambia Utente</button>
             </div>
 
             <div id="wishlist-section" class="section-card hidden">
                 <h2>I Miei Desideri</h2>
                 <p>Inserisci i dettagli di qualcosa che ti piacerebbe ricevere.</p>
+                
                 <input type="text" id="wish-desc" placeholder="Cosa desideri? (es. Zaino blu)">
                 <input type="text" id="wish-link" placeholder="Link al sito internet (opzionale)">
                 <input type="text" id="wish-img" placeholder="Indirizzo internet dell'immagine (opzionale)">
-                <select id="wish-cat">
-                    <option value="altro">-- Seleziona Categoria --</option>
-                    <option value="abbigliamento">Abbigliamento</option>
-                    <option value="elettronica">Elettronica</option>
-                    <option value="libri">Libri</option>
-                    <option value="viaggi">Viaggi</option>
-                    <option value="altro">Altro</option>
-                </select>
+                
+                <input type="text" id="wish-cat" list="cat-list" placeholder="Categoria (seleziona o scrivi tu)">
+                <datalist id="cat-list">
+                    <option value="Abbigliamento">
+                    <option value="Elettronica">
+                    <option value="Libri">
+                    <option value="Viaggi">
+                    <option value="Arredamento">
+                    <option value="Sport">
+                </datalist>
+
+                <input type="text" id="wish-keywords" placeholder="Parole chiave (es. campeggio, outdoor)">
+                
                 <button onclick="addWish()">Salva nella mia Lista</button>
                 <div id="wish-status" class="alert-msg"></div>
             </div>
 
             <div id="gift-section" class="section-card hidden">
-                <h2>Trova un Regalo per un Amico</h2>
+                <h2>Trova un Regalo per Qualcuno</h2>
                 <p>Scegli la persona a cui fare il regalo (tu sei escluso dalla lista).</p>
                 <select id="target-user-select" onchange="resetChat()">
                     <option value="">-- A chi devi fare il regalo? --</option>
@@ -94,7 +101,7 @@
                 <div id="chat-container">
                     <h2>Chat con l'Assistente</h2>
                     <div id="chat-box">
-                        <div class="message bot-msg">Seleziona un amico sopra per iniziare.</div>
+                        <div class="message bot-msg">Seleziona qualcuno sopra per iniziare.</div>
                     </div>
                     <input type="text" id="chat-input" placeholder="Es: Cosa desidera nella lista?">
                     <button onclick="sendMessage()">Invia Messaggio</button>
@@ -104,10 +111,8 @@
     </div>
 
     <script>
-        // CONFIGURAZIONE SUPABASE CON LE TUE CHIAVI ATTIVE
-        const supabaseUrl = 'https://fjebwqlcpmkptxiaosir.supabase.co';
-        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZqZWJ3cWxjcG1rcHR4aWFvc2lyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk5NjE3OTcsImV4cCI6MjA5NTUzNzc5N30.sMYd6Em6cyO5pMVSolWDGvaqiTWRwVKqZdLTSiWYBic';
-        const client = window.supabase.createClient(supabaseUrl, supabaseKey);
+        // Collegamento diretto al tuo Google Apps Script
+        const GOOGLE_APP_URL = 'https://script.google.com/macros/s/AKfycbxHVbm-sXKip0X9XKvK0DCM5CYWB6qTd2m9rjy0pT_Rq8YDjoR8_YPKtgvalKH-KC9r2Q/exec';
 
         let myUserId = "";
         let myUserName = "";
@@ -115,16 +120,45 @@
         let targetDesideri = []; 
         let tuttiGliUtenti = [];
 
-        // Carica la lista globale degli utenti dal database
+        const mappaContesti = {
+            "campeggio": ["zaino", "borraccia", "tenda", "sacco", "torcia", "coltello", "fornello", "trekking", "montagna"],
+            "montagna": ["zaino", "borraccia", "scarponi", "giacca", "trekking", "neve", "scalata"],
+            "viaggio": ["trolley", "valigia", "zaino", "adattatore", "viaggi", "beauty"],
+            "lettura": ["libro", "fumetto", "e-reader", "kindle", "romanzo", "libri"],
+            "musica": ["cuffie", "auricolari", "cassa", "speaker", "vinile", "spotify"],
+            "tecnologia": ["elettronica", "cuffie", "smartwatch", "caricatore", "mouse", "tastiera", "computer"]
+        };
+
+        // Raccoglie i dati inviandoli ad Apps Script
+        async function fetchAPI(action, payload = null) {
+            try {
+                if (payload) {
+                    // Invio dati (POST) per creare utenti o desideri
+                    const response = await fetch(GOOGLE_APP_URL, {
+                        method: 'POST',
+                        body: JSON.stringify({ action: action, ...payload }),
+                        headers: { 'Content-Type': 'text/plain;charset=utf-8' }
+                    });
+                    return await response.json();
+                } else {
+                    // Lettura dati (GET) per ottenere utenti o desideri
+                    const response = await fetch(`${GOOGLE_APP_URL}?action=${action}`);
+                    return await response.json();
+                }
+            } catch (error) {
+                console.error("Errore di connessione a Google Sheets:", error);
+                return null;
+            }
+        }
+
         async function loadUsers() {
-            const { data, error } = await client.from('utenti').select('*').order('nome');
+            const data = await fetchAPI('getUsers');
             if (data) {
                 tuttiGliUtenti = data;
                 populateLoginSelect();
             }
         }
 
-        // Popola il menu a tendina iniziale per l'accesso
         function populateLoginSelect() {
             const mySelect = document.getElementById('my-user-select');
             let optionsHtml = '<option value="">-- Seleziona il tuo profilo --</option>';
@@ -134,7 +168,6 @@
             mySelect.innerHTML = optionsHtml;
         }
 
-        // Funzione per gestire il Login dell'utente
         function loginUser() {
             const select = document.getElementById('my-user-select');
             myUserId = select.value;
@@ -142,60 +175,51 @@
             
             myUserName = select.options[select.selectedIndex].text;
             
-            // Nasconde il pannello di accesso e mostra il pannello principale
             document.getElementById('auth-panel').classList.add('hidden');
             document.getElementById('main-panel').classList.remove('hidden');
             document.getElementById('user-banner').innerText = `Profilo Attivo: ${myUserName}`;
             
-            // Popola la lista degli amici escludendo l'utente loggato
             populateTargetSelect();
         }
 
-        // Popola la lista destinatari escludendo se stessi
         function populateTargetSelect() {
             const targetSelect = document.getElementById('target-user-select');
             let optionsHtml = '<option value="">-- A chi devi fare il regalo? --</option>';
             
             tuttiGliUtenti.forEach(user => {
-                if (user.id !== myUserId) { // Filtro di esclusione
+                if (user.id !== myUserId) {
                     optionsHtml += `<option value="${user.id}">${user.nome}</option>`;
                 }
             });
             targetSelect.innerHTML = optionsHtml;
         }
 
-        // Crea un nuovo utente nel database
         async function createUser() {
             const nomeInput = document.getElementById('new-user-name');
             const nome = nomeInput.value.trim();
             if (!nome) return alert("Inserisci un nome valido.");
 
-            const { error } = await client.from('utenti').insert([{ nome: nome }]);
+            document.getElementById('reg-status').innerText = "Creazione in corso...";
+
+            const res = await fetchAPI('addUser', { nome: nome });
             
-            if (error) {
-                console.error(error);
+            if (!res || !res.success) {
                 alert("Errore durante la creazione del profilo.");
+                document.getElementById('reg-status').innerText = "";
             } else {
                 document.getElementById('reg-status').innerText = `Profilo di ${nome} creato!`;
                 nomeInput.value = "";
                 setTimeout(() => { document.getElementById('reg-status').innerText = ""; }, 3000);
                 
-                // Ricarica la lista utenti e seleziona automaticamente il nuovo profilo creato
-                const { data } = await client.from('utenti').select('*').order('nome');
-                if (data) {
-                    tuttiGliUtenti = data;
-                    populateLoginSelect();
-                    // Trova l'id del nuovo utente creato per loggarlo subito
-                    const nuovoUtente = data.find(u => u.nome === nome);
-                    if(nuovoUtente) {
-                        document.getElementById('my-user-select').value = nuovoUtente.id;
-                        loginUser();
-                    }
+                await loadUsers();
+                const nuovoUtente = tuttiGliUtenti.find(u => u.nome === nome);
+                if(nuovoUtente) {
+                    document.getElementById('my-user-select').value = nuovoUtente.id;
+                    loginUser();
                 }
             }
         }
 
-        // Gestione della visibilità dei blocchi interni
         function showSection(sectionId) {
             document.getElementById('wishlist-section').classList.add('hidden');
             document.getElementById('gift-section').classList.add('hidden');
@@ -207,8 +231,7 @@
         }
 
         function logout() {
-            myUserId = "";
-            myUserName = "";
+            myUserId = ""; myUserName = "";
             document.getElementById('my-user-select').value = "";
             document.getElementById('main-panel').classList.add('hidden');
             document.getElementById('wishlist-section').classList.add('hidden');
@@ -217,62 +240,63 @@
             loadUsers();
         }
 
-        // Salva il desiderio nel database
         async function addWish() {
             const desc = document.getElementById('wish-desc').value;
             if (!desc) return alert("La descrizione del regalo è obbligatoria.");
 
+            document.getElementById('wish-status').innerText = "Salvataggio in corso...";
+
             const payload = {
                 utente_id: myUserId,
                 descrizione: desc,
-                link_esterno: document.getElementById('wish-link').value || null,
-                immagine_url: document.getElementById('wish-img').value || null,
-                categoria: document.getElementById('wish-cat').value
+                link_esterno: document.getElementById('wish-link').value || "",
+                immagine_url: document.getElementById('wish-img').value || "",
+                categoria: document.getElementById('wish-cat').value || "Altro",
+                parole_chiave: document.getElementById('wish-keywords').value || ""
             };
 
-            const { error } = await client.from('desideri').insert([payload]);
+            const res = await fetchAPI('addWish', payload);
 
-            if (error) {
-                console.error(error);
+            if (!res || !res.success) {
                 alert("Errore durante il salvataggio.");
+                document.getElementById('wish-status').innerText = "";
             } else {
                 document.getElementById('wish-desc').value = "";
                 document.getElementById('wish-link').value = "";
                 document.getElementById('wish-img').value = "";
-                document.getElementById('wish-cat').value = "altro";
+                document.getElementById('wish-cat').value = "";
+                document.getElementById('wish-keywords').value = "";
 
-                const status = document.getElementById('wish-status');
-                status.innerText = "Desiderio salvato nella tua lista!";
-                setTimeout(() => { status.innerText = ""; }, 3000);
+                document.getElementById('wish-status').innerText = "Desiderio salvato nella tua lista!";
+                setTimeout(() => { document.getElementById('wish-status').innerText = ""; }, 3000);
             }
         }
 
-        // Avvia la chat scaricando i dati dell'amico selezionato
         async function startChat() {
             const select = document.getElementById('target-user-select');
             targetUser = select.value;
-            
-            if (!targetUser) return alert("Seleziona un amico a cui fare il regalo.");
+            if (!targetUser) return alert("Seleziona qualcuno a cui fare il regalo.");
 
             document.getElementById('chat-container').style.display = 'block';
             const nomeTarget = select.options[select.selectedIndex].text;
-            document.getElementById('chat-box').innerHTML = `<div class="message bot-msg">Sto scaricando i dati di ${nomeTarget} dal database...</div>`;
+            document.getElementById('chat-box').innerHTML = `<div class="message bot-msg">Sto scaricando i dati di ${nomeTarget} da Google Sheets...</div>`;
 
-            const { data, error } = await client.from('desideri').select('*').eq('utente_id', targetUser);
+            // Uso fetch per prendere solo i regali specifici dell'utente
+            const response = await fetch(`${GOOGLE_APP_URL}?action=getWishes&userId=${targetUser}`);
             
-            if (error) {
-                document.getElementById('chat-box').innerHTML = `<div class="message bot-msg" style="color: red;">Errore di connessione.</div>`;
-            } else {
+            try {
+                const data = await response.json();
                 targetDesideri = data; 
                 if(data.length === 0) {
                     document.getElementById('chat-box').innerHTML = `<div class="message bot-msg">La lista di ${nomeTarget} è vuota. Non ha ancora inserito desideri.</div>`;
                 } else {
                     document.getElementById('chat-box').innerHTML = `<div class="message bot-msg">Sono pronto. Ho analizzato i desideri di ${nomeTarget}. Chiedimi pure cosa desidera!</div>`;
                 }
+            } catch (error) {
+                document.getElementById('chat-box').innerHTML = `<div class="message bot-msg" style="color: red;">Errore di connessione a Google Sheets.</div>`;
             }
         }
 
-        // Logica di risposta dell'assistente digitale
         function sendMessage() {
             const input = document.getElementById('chat-input');
             const message = input.value.toLowerCase().trim();
@@ -282,7 +306,7 @@
             chatBox.innerHTML += `<div class="message user-msg">Tu: ${input.value}</div>`;
             
             setTimeout(() => {
-                let botReply = "Mmm, ho cercato in tutte le informazioni salvate ma non ho trovato corrispondenze specifiche. Prova a chiedermi una categoria (come abbigliamento, viaggi, libri, elettronica) o scrivi un oggetto specifico.";
+                let botReply = "Mmm, ho cercato in tutta la sua lista ma non ho trovato corrispondenze. Prova a chiedermi una categoria specifica o un oggetto preciso.";
                 
                 if (targetDesideri.length === 0) {
                     botReply = "La lista di questo utente è vuota, non posso estrarre consigli.";
@@ -293,34 +317,40 @@
                     if (IsDomandaGenerica) {
                         const listaTesto = targetDesideri.map(r => {
                             let dettagli = `• <strong>${r.descrizione}</strong> (Categoria: ${r.categoria})`;
-                            if (r.link_esterno) dettagli += ` - <a href="${r.link_esterno}" target="_blank" style="color: #38bdf8; text-decoration: underline;">Link</a>`;
+                            if (r.link_esterno) dettagli += ` - <a href="${r.link_esterno}" target="_blank" style="color: #94d2bd; text-decoration: underline;">Link</a>`;
                             return dettagli;
                         }).join('<br>');
-                        
                         botReply = `Ecco l'elenco completo dei desideri presenti nella sua lista:<br>${listaTesto}`;
                     } else {
                         const paroleRicerca = message.split(/[\s,.'?!]+/).filter(parola => parola.length > 2);
+
+                        let sinonimiEstesi = [...paroleRicerca];
+                        paroleRicerca.forEach(parola => {
+                            if (mappaContesti[parola]) {
+                                sinonimiEstesi = sinonimiEstesi.concat(mappaContesti[parola]);
+                            }
+                        });
 
                         const regaliTrovati = targetDesideri.filter(regalo => {
                             const desc = (regalo.descrizione || "").toLowerCase();
                             const cat = (regalo.categoria || "").toLowerCase();
                             const link = (regalo.link_esterno || "").toLowerCase();
                             const img = (regalo.immagine_url || "").toLowerCase();
+                            const keywords = (regalo.parole_chiave || "").toLowerCase();
 
-                            if (message.includes(cat) || message.includes(desc)) return true;
-
-                            return paroleRicerca.some(parola => 
-                                desc.includes(parola) || cat.includes(parola) || link.includes(parola) || img.includes(parola)
+                            return sinonimiEstesi.some(parola => 
+                                desc.includes(parola) || cat.includes(parola) || link.includes(parola) || img.includes(parola) || keywords.includes(parola)
                             );
                         });
 
                         if (regaliTrovati.length > 0) {
                             const listaTesto = regaliTrovati.map(r => {
                                 let dettagli = `• <strong>${r.descrizione}</strong> (${r.categoria})`;
-                                if (r.link_esterno) dettagli += ` - <a href="${r.link_esterno}" target="_blank" style="color: #38bdf8; text-decoration: underline;">Link</a>`;
+                                if (r.parole_chiave) dettagli += ` <br><small style="color:#a8dadc;">[Parole chiave: ${r.parole_chiave}]</small>`;
+                                if (r.link_esterno) dettagli += ` <br><a href="${r.link_esterno}" target="_blank" style="color: #94d2bd; text-decoration: underline;">Apri Link</a>`;
                                 return dettagli;
-                            }).join('<br>');
-                            botReply = `Ho analizzato i suoi dati, ecco cosa ho trovato in linea con la tua richiesta:<br>${listaTesto}`;
+                            }).join('<br><br>');
+                            botReply = `Ho analizzato i dati e le parole chiave, ecco cosa ho trovato in linea con la tua richiesta:<br><br>${listaTesto}`;
                         }
                     }
                 }
