@@ -14,7 +14,7 @@
         h1 { font-size: 36px; font-weight: 700; margin-bottom: 30px; text-shadow: 0 2px 4px rgba(0,0,0,0.8); }
         h2 { font-size: 24px; margin-bottom: 15px; color: #93c5fd; }
         .section-card { background: rgba(0, 0, 0, 0.4); border: 1px solid rgba(59, 130, 246, 0.5); backdrop-filter: blur(8px); padding: 30px; border-radius: 16px; margin-bottom: 30px; box-shadow: 0 10px 25px rgba(0,0,0,0.5); }
-        select, input { font-family: 'Alegreya', serif; margin: 12px auto; padding: 14px; font-size: 18px; width: 90%; display: block; text-align: center; border: 2px solid #3b82f6; border-radius: 8px; box-sizing: border-box; }
+        select, input { font-family: 'Alegreya', serif; margin: 12px auto; padding: 14px; font-size: 18px; width: 90%; display: block; text-align: center; border: 2px solid #3b82f6; border-radius: 8px; box-sizing: border-box; background-color: #ffffff; color: #0f172a; }
         button { font-family: 'Alegreya', serif; margin: 12px auto; padding: 14px; font-size: 18px; width: 90%; display: block; text-align: center; border-radius: 8px; background: linear-gradient(135deg, #2563eb, #1d4ed8); color: #ffffff; border: none; cursor: pointer; font-weight: 700; transition: all 0.3s ease; }
         button:hover { background: linear-gradient(135deg, #3b82f6, #2563eb); transform: translateY(-2px); }
         #chat-container { display: none; margin-top: 20px; border-top: 1px solid rgba(147, 197, 253, 0.3); padding-top: 25px; }
@@ -22,7 +22,7 @@
         .message { margin-bottom: 12px; font-size: 18px; line-height: 1.4; }
         .bot-msg { color: #fb923c; font-weight: bold; }
         .user-msg { color: #38bdf8; }
-        .alert-msg { font-weight: bold; margin-top: 10px; font-size: 18px; color: #4ade80; }
+        .alert-msg { font-weight: bold; margin-top: 10px; font-size: 18px; color: #4ade80; text-shadow: 0 1px 2px rgba(0,0,0,0.8); }
     </style>
 </head>
 <body>
@@ -66,6 +66,7 @@
             <button onclick="startChat()">Avvia Assistente AI</button>
 
             <div id="chat-container">
+                <h2>Chat con l'Assistente</h2>
                 <div id="chat-box">
                     <div class="message bot-msg">Seleziona un amico sopra per iniziare.</div>
                 </div>
@@ -76,17 +77,14 @@
     </div>
 
     <script>
-        // ==========================================
-        // CONFIGURAZIONE SUPABASE (INCOLLA QUI LE TUE CHIAVI)
-        // ==========================================
+        // CONFIGURAZIONE SUPABASE CON LE TUE CHIAVI ATTIVE
         const supabaseUrl = 'https://fjebwqlcpmkptxiaosir.supabase.co';
         const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZqZWJ3cWxjcG1rcHR4aWFvc2lyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk5NjE3OTcsImV4cCI6MjA5NTUzNzc5N30.sMYd6Em6cyO5pMVSolWDGvaqiTWRwVKqZdLTSiWYBic';
         const client = window.supabase.createClient(supabaseUrl, supabaseKey);
-        // ==========================================
 
         let myUser = "";
         let targetUser = "";
-        let targetDesideri = []; // Conterrà i desideri scaricati dal database
+        let targetDesideri = []; 
 
         // Carica la lista degli utenti all'apertura della pagina
         async function loadUsers() {
@@ -122,7 +120,7 @@
                 document.getElementById('reg-status').innerText = `${nome} registrato con successo!`;
                 nomeInput.value = "";
                 setTimeout(() => { document.getElementById('reg-status').innerText = ""; }, 3000);
-                loadUsers(); // Ricarica i menu a tendina
+                loadUsers(); 
             }
         }
 
@@ -167,7 +165,7 @@
             }
         }
 
-        // Avvia la chat scaricando i dati dell'amico dal database
+        // Avvia la chat scaricando i dati dal database
         async function startChat() {
             const select = document.getElementById('target-user-select');
             targetUser = select.value;
@@ -179,17 +177,21 @@
             const nomeTarget = select.options[select.selectedIndex].text;
             document.getElementById('chat-box').innerHTML = `<div class="message bot-msg">Sto caricando la lista di ${nomeTarget} dal database...</div>`;
 
-            // Scarica i desideri specifici di questo utente
             const { data, error } = await client.from('desideri').select('*').eq('utente_id', targetUser);
             
             if (error) {
                 document.getElementById('chat-box').innerHTML = `<div class="message bot-msg" style="color: red;">Errore di connessione al database.</div>`;
             } else {
-                targetDesideri = data; // Salva in memoria per usarli nella chat
-                document.getElementById('chat-box').innerHTML = `<div class="message bot-msg">Ho esaminato la lista di ${nomeTarget} (${data.length} regali inseriti). Chiedimi pure in quale categoria vorresti cercare o scrivi un oggetto specifico!</div>`;
+                targetDesideri = data; 
+                if(data.length === 0) {
+                    document.getElementById('chat-box').innerHTML = `<div class="message bot-msg">La lista di ${nomeTarget} è attualmente vuota. Chiedigli di inserire qualche desiderio!</div>`;
+                } else {
+                    document.getElementById('chat-box').innerHTML = `<div class="message bot-msg">Ho esaminato la lista di ${nomeTarget} (${data.length} regali trovati). Chiedimi pure cosa desidera in generale o in una categoria specifica!</div>`;
+                }
             }
         }
 
+        // FUNZIONE DI RISPOSTA LOGICA INTELLIGENTE
         function sendMessage() {
             const input = document.getElementById('chat-input');
             const message = input.value.toLowerCase().trim();
@@ -199,38 +201,56 @@
             chatBox.innerHTML += `<div class="message user-msg">Tu: ${input.value}</div>`;
             
             setTimeout(() => {
-                let botReply = "Mmm, ho analizzato il database ma non ho trovato nulla di simile nella sua lista.";
+                let botReply = "Mmm, ho analizzato la sua lista ma non ho trovato corrispondenze specifiche per questa richiesta. Prova a chiedermi una categoria come 'abbigliamento' o un oggetto preciso.";
                 
-                if (targetDesideri.length > 0) {
-                    const paroleRicerca = message.split(/[\s,.'?!]+/).filter(parola => parola.length > 2);
+                if (targetDesideri.length === 0) {
+                    botReply = "La lista di questo utente è completamente vuota, non posso darti consigli.";
+                } else {
+                    const domandegeneriche = ["lista", "desideri", "tutto", "tutti", "cosa c'è", "idee", "consiglio", "consigli", "mostra"];
+                    const IsDomandaGenerica = domandegeneriche.some(parola => message.includes(parola));
 
-                    const regaliTrovati = targetDesideri.filter(regalo => {
-                        const desc = (regalo.descrizione || "").toLowerCase();
-                        const cat = (regalo.categoria || "").toLowerCase();
-                        const link = (regalo.link_esterno || "").toLowerCase();
-                        const img = (regalo.immagine_url || "").toLowerCase();
+                    if (IsDomandaGenerica) {
+                        const listaTesto = targetDesideri.map(r => {
+                            let dettagli = `• <strong>${r.descrizione}</strong> (Categoria: ${r.categoria})`;
+                            if (r.link_esterno) dettagli += ` - <a href="${r.link_esterno}" target="_blank" style="color: #38bdf8; text-decoration: underline;">Link</a>`;
+                            return dettagli;
+                        }).join('<br>');
+                        
+                        botReply = `Ecco l'elenco completo dei suoi desideri salvati:<br>${listaTesto}`;
+                    } else {
+                        const paroleRicerca = message.split(/[\s,.'?!]+/).filter(parola => parola.length > 2);
 
-                        if (message.includes(cat) || message.includes(desc)) return true;
+                        const regaliTrovati = targetDesideri.filter(regalo => {
+                            const desc = (regalo.descrizione || "").toLowerCase();
+                            const cat = (regalo.categoria || "").toLowerCase();
+                            const link = (regalo.link_esterno || "").toLowerCase();
+                            const img = (regalo.immagine_url || "").toLowerCase();
 
-                        return paroleRicerca.some(parola => 
-                            desc.includes(parola) || cat.includes(parola) || link.includes(parola) || img.includes(parola)
-                        );
-                    });
+                            if (message.includes(cat) || message.includes(desc)) return true;
 
-                    if (regaliTrovati.length > 0) {
-                        const listaTesto = regaliTrovati.map(r => `• ${r.descrizione} (Categoria: ${r.categoria})`).join('<br>');
-                        botReply = `Ho trovato queste corrispondenze nei suoi desideri:<br>${listaTesto}`;
+                            return paroleRicerca.some(parola => 
+                                desc.includes(parola) || cat.includes(parola) || link.includes(parola) || img.includes(parola)
+                            );
+                        });
+
+                        if (regaliTrovati.length > 0) {
+                            const listaTesto = regaliTrovati.map(r => {
+                                let dettagli = `• <strong>${r.descrizione}</strong> (${r.categoria})`;
+                                if (r.link_esterno) dettagli += ` - <a href="${r.link_esterno}" target="_blank" style="color: #38bdf8; text-decoration: underline;">Link</a>`;
+                                return dettagli;
+                            }).join('<br>');
+                            botReply = `Ho frugato nella lista e ho trovato queste corrispondenze:<br>${listaTesto}`;
+                        }
                     }
                 }
                 
                 chatBox.innerHTML += `<div class="message bot-msg">Assistente: ${botReply}</div>`;
                 chatBox.scrollTop = chatBox.scrollHeight;
-            }, 700);
+            }, 600);
 
             input.value = "";
         }
 
-        // All'avvio dell'app, carica la lista utenti
         window.onload = loadUsers;
     </script>
 </body>
