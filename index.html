@@ -103,8 +103,7 @@
             <div id="manage-wishes-section" class="section-card hidden">
                 <h2>I Miei Desideri Salvati</h2>
                 <p>Ecco cosa hai inserito finora.</p>
-                <div id="my-wishes-list">
-                    </div>
+                <div id="my-wishes-list"></div>
             </div>
 
             <div id="gift-section" class="section-card hidden">
@@ -135,7 +134,7 @@
         let targetUser = "";
         let targetDesideri = []; 
         let tuttiGliUtenti = [];
-        let editingWishId = null; // Memorizza l'ID del desiderio se lo stiamo modificando
+        let editingWishId = null;
 
         const mappaContesti = {
             "campeggio": ["zaino", "borraccia", "tenda", "sacco", "torcia", "coltello", "fornello", "trekking", "montagna"],
@@ -146,27 +145,21 @@
             "tecnologia": ["elettronica", "cuffie", "smartwatch", "caricatore", "mouse", "tastiera", "computer"]
         };
 
-        async function fetchAPI(action, payload = null) {
+        // NUOVA LOGICA DI CONTATTO COMPATIBILE AL 100% (SOLO GET)
+        async function callSheetsAPI(action, params = {}) {
             try {
-                if (payload) {
-                    const response = await fetch(GOOGLE_APP_URL, {
-                        method: 'POST',
-                        body: JSON.stringify({ action: action, ...payload }),
-                        headers: { 'Content-Type': 'text/plain;charset=utf-8' }
-                    });
-                    return await response.json();
-                } else {
-                    const response = await fetch(`${GOOGLE_APP_URL}?action=${action}`);
-                    return await response.json();
-                }
+                // Trasforma tutti i parametri in una stringa di testo allegata al link (?action=abc&nome=pippo...)
+                const queryParams = new URLSearchParams({ action: action, ...params }).toString();
+                const response = await fetch(`${GOOGLE_APP_URL}?${queryParams}`);
+                return await response.json();
             } catch (error) {
-                console.error("Errore di connessione a Google Sheets:", error);
+                console.error("Errore di comunicazione:", error);
                 return null;
             }
         }
 
         async function loadUsers() {
-            const data = await fetchAPI('getUsers');
+            const data = await callSheetsAPI('getUsers');
             if (data) {
                 tuttiGliUtenti = data;
                 populateLoginSelect();
@@ -186,20 +179,17 @@
             const select = document.getElementById('my-user-select');
             myUserId = select.value;
             if (!myUserId) return;
-            
             myUserName = select.options[select.selectedIndex].text;
             
             document.getElementById('auth-panel').classList.add('hidden');
             document.getElementById('main-panel').classList.remove('hidden');
             document.getElementById('user-banner').innerText = `Profilo Attivo: ${myUserName}`;
-            
             populateTargetSelect();
         }
 
         function populateTargetSelect() {
             const targetSelect = document.getElementById('target-user-select');
             let optionsHtml = '<option value="">-- A chi devi fare il regalo? --</option>';
-            
             tuttiGliUtenti.forEach(user => {
                 if (user.id !== myUserId) {
                     optionsHtml += `<option value="${user.id}">${user.nome}</option>`;
@@ -214,7 +204,7 @@
             if (!nome) return alert("Inserisci un nome valido.");
 
             document.getElementById('reg-status').innerText = "Creazione in corso...";
-            const res = await fetchAPI('addUser', { nome: nome });
+            const res = await callSheetsAPI('addUser', { nome: nome });
             
             if (!res || !res.success) {
                 alert("Errore durante la creazione del profilo.");
@@ -222,7 +212,7 @@
             } else {
                 document.getElementById('reg-status').innerText = `Profilo di ${nome} creato!`;
                 nomeInput.value = "";
-                setTimeout(() => { document.getElementById('reg-status').innerText = ""; }, 3000);
+                setTimeout(() => { document.getElementById('reg-status').innerText = ""; }, 2000);
                 
                 await loadUsers();
                 const nuovoUtente = tuttiGliUtenti.find(u => u.nome === nome);
@@ -237,7 +227,9 @@
             document.getElementById('wishlist-section').classList.add('hidden');
             document.getElementById('gift-section').classList.add('hidden');
             document.getElementById('manage-wishes-section').classList.add('hidden');
-            document.getElementById(sectionId).classList.remove('hidden');
+            if(document.getElementById(sectionId)) {
+                document.getElementById(sectionId).classList.remove('hidden');
+            }
         }
 
         function resetChat() {
@@ -248,12 +240,11 @@
             myUserId = ""; myUserName = "";
             document.getElementById('my-user-select').value = "";
             document.getElementById('main-panel').classList.add('hidden');
-            showSection('none'); // Nasconde tutte le sezioni interne
+            showSection('none');
             document.getElementById('auth-panel').classList.remove('hidden');
             loadUsers();
         }
 
-        // Apre il form vuoto per un NUOVO desiderio
         function openAddWish() {
             editingWishId = null;
             document.getElementById('wish-form-title').innerText = "Nuovo Desiderio";
@@ -266,7 +257,6 @@
             showSection('wishlist-section');
         }
 
-        // Salva (o aggiorna) un desiderio
         async function saveWish() {
             const desc = document.getElementById('wish-desc').value;
             if (!desc) return alert("La descrizione del regalo è obbligatoria.");
@@ -274,7 +264,7 @@
             document.getElementById('wish-status').innerText = "Salvataggio in corso...";
 
             const payload = {
-                id: editingWishId, // Sarà null se è nuovo, o conterrà l'ID se stiamo modificando
+                id: editingWishId || "",
                 utente_id: myUserId,
                 descrizione: desc,
                 link_esterno: document.getElementById('wish-link').value || "",
@@ -284,7 +274,7 @@
             };
 
             const action = editingWishId ? 'updateWish' : 'addWish';
-            const res = await fetchAPI(action, payload);
+            const res = await callSheetsAPI(action, payload);
 
             if (!res || !res.success) {
                 alert("Errore durante il salvataggio.");
@@ -293,46 +283,39 @@
                 document.getElementById('wish-status').innerText = editingWishId ? "Desiderio aggiornato!" : "Desiderio salvato!";
                 setTimeout(() => { 
                     document.getElementById('wish-status').innerText = ""; 
-                    if(editingWishId) showMyWishes(); // Se stavo modificando, torno alla lista
-                    else openAddWish(); // Se stavo aggiungendo, pulisco il form
+                    if(editingWishId) showMyWishes();
+                    else openAddWish();
                 }, 1500);
             }
         }
 
-        // Scarica e mostra i desideri dell'utente loggato
         async function showMyWishes() {
             showSection('manage-wishes-section');
             const listContainer = document.getElementById('my-wishes-list');
             listContainer.innerHTML = "<p>Caricamento dei tuoi desideri in corso...</p>";
 
-            const response = await fetch(`${GOOGLE_APP_URL}?action=getWishes&userId=${myUserId}`);
-            try {
-                const data = await response.json();
-                if(data.length === 0) {
-                    listContainer.innerHTML = "<p>Non hai ancora salvato nessun desiderio.</p>";
-                } else {
-                    listContainer.innerHTML = "";
-                    data.forEach(wish => {
-                        const div = document.createElement('div');
-                        div.className = 'wish-item';
-                        div.innerHTML = `
-                            <strong>${wish.descrizione}</strong>
-                            <span>Categorie: ${wish.categoria}</span>
-                            <span>Parole Chiave: ${wish.parole_chiave || "Nessuna"}</span>
-                            <div style="margin-top: 10px; text-align: right;">
-                                <button class="action-btn-small" onclick='editWish(${JSON.stringify(wish)})'>Modifica</button>
-                                <button class="action-btn-small btn-red" onclick='deleteWish("${wish.id}")'>Elimina</button>
-                            </div>
-                        `;
-                        listContainer.appendChild(div);
-                    });
-                }
-            } catch (error) {
-                listContainer.innerHTML = "<p style='color: #e63946;'>Errore durante il caricamento.</p>";
+            const data = await callSheetsAPI('getWishes', { userId: myUserId });
+            if(!data || data.length === 0) {
+                listContainer.innerHTML = "<p>Non hai ancora salvato nessun desiderio.</p>";
+            } else {
+                listContainer.innerHTML = "";
+                data.forEach(wish => {
+                    const div = document.createElement('div');
+                    div.className = 'wish-item';
+                    div.innerHTML = `
+                        <strong>${wish.descrizione}</strong>
+                        <span>Categorie: ${wish.categoria}</span>
+                        <span>Parole Chiave: ${wish.parole_chiave || "Nessuna"}</span>
+                        <div style="margin-top: 10px; text-align: right;">
+                            <button class="action-btn-small" onclick='editWish(${JSON.stringify(wish)})'>Modifica</button>
+                            <button class="action-btn-small btn-red" onclick='deleteWish("${wish.id}")'>Elimina</button>
+                        </div>
+                    `;
+                    listContainer.appendChild(div);
+                });
             }
         }
 
-        // Prepara il form per la modifica
         function editWish(wish) {
             editingWishId = wish.id;
             document.getElementById('wish-form-title').innerText = "Modifica Desiderio";
@@ -347,23 +330,22 @@
             showSection('wishlist-section');
         }
 
-        // Elimina un desiderio
         async function deleteWish(wishId) {
             if(!confirm("Sei sicuro di voler eliminare questo desiderio?")) return;
             
             const listContainer = document.getElementById('my-wishes-list');
             listContainer.innerHTML = "<p>Eliminazione in corso...</p>";
             
-            const res = await fetchAPI('deleteWish', { id: wishId, utente_id: myUserId });
+            const res = await callSheetsAPI('deleteWish', { id: wishId, utente_id: myUserId });
             if (res && res.success) {
-                showMyWishes(); // Ricarica la lista aggiornata
+                showMyWishes();
             } else {
                 alert("Errore durante l'eliminazione.");
                 showMyWishes();
             }
         }
 
-        // ===== SEZIONE CHAT AI =====
+        // ===== CHAT ASSISTENTE =====
         async function startChat() {
             const select = document.getElementById('target-user-select');
             targetUser = select.value;
@@ -373,16 +355,15 @@
             const nomeTarget = select.options[select.selectedIndex].text;
             document.getElementById('chat-box').innerHTML = `<div class="message bot-msg">Sto scaricando i dati di ${nomeTarget}...</div>`;
 
-            const response = await fetch(`${GOOGLE_APP_URL}?action=getWishes&userId=${targetUser}`);
-            try {
-                const data = await response.json();
+            const data = await callSheetsAPI('getWishes', { userId: targetUser });
+            if(data) {
                 targetDesideri = data; 
                 if(data.length === 0) {
                     document.getElementById('chat-box').innerHTML = `<div class="message bot-msg">La lista di ${nomeTarget} è vuota. Non ha ancora inserito desideri.</div>`;
                 } else {
                     document.getElementById('chat-box').innerHTML = `<div class="message bot-msg">Sono pronto. Ho analizzato i desideri di ${nomeTarget}. Chiedimi pure cosa desidera!</div>`;
                 }
-            } catch (error) {
+            } else {
                 document.getElementById('chat-box').innerHTML = `<div class="message bot-msg" style="color: red;">Errore di connessione a Google Sheets.</div>`;
             }
         }
@@ -423,7 +404,7 @@
 
                         const regaliTrovati = targetDesideri.filter(regalo => {
                             const desc = (regalo.descrizione || "").toLowerCase();
-                            const cat = (regalo.categoria || "").toLowerCase(); // Ora può contenere più categorie testuali
+                            const cat = (regalo.categoria || "").toLowerCase();
                             const link = (regalo.link_esterno || "").toLowerCase();
                             const img = (regalo.immagine_url || "").toLowerCase();
                             const keywords = (regalo.parole_chiave || "").toLowerCase();
