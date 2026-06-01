@@ -21,8 +21,12 @@
         button { font-family: 'Alegreya', serif; margin: 12px auto; padding: 14px; font-size: 18px; width: 90%; display: block; text-align: center; border-radius: 8px; background: linear-gradient(135deg, #006d77, #005f73); color: #ffffff; border: none; cursor: pointer; font-weight: 700; transition: all 0.3s ease; box-shadow: 0 4px 12px rgba(0, 109, 119, 0.4); }
         button:hover { background: linear-gradient(135deg, #0a9396, #006d77); transform: translateY(-2px); }
         
+        .action-btn-small { width: 48%; display: inline-block; font-size: 14px; padding: 10px; margin: 5px 1%; }
+        .btn-red { background: linear-gradient(135deg, #e63946, #c1121f); box-shadow: 0 4px 12px rgba(230, 57, 70, 0.4); }
+        .btn-red:hover { background: linear-gradient(135deg, #f07167, #e63946); }
+        
         .hidden { display: none !important; }
-        .menu-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; width: 90%; margin: 0 auto; }
+        .menu-grid { display: grid; grid-template-columns: 1fr; gap: 15px; width: 90%; margin: 0 auto; }
         .menu-grid button { margin: 0; width: 100%; }
         
         #chat-container { display: none; margin-top: 20px; border-top: 1px solid rgba(0, 109, 119, 0.3); padding-top: 25px; }
@@ -32,6 +36,10 @@
         .user-msg { color: #94d2bd; }
         .alert-msg { font-weight: bold; margin-top: 10px; font-size: 18px; color: #2a9d8f; text-shadow: 0 1px 2px rgba(0,0,0,0.8); }
         .current-user-banner { font-size: 20px; color: #e9c46a; margin-bottom: 20px; font-weight: bold; }
+        
+        .wish-item { background: rgba(0, 0, 0, 0.3); border: 1px solid #0081a7; border-radius: 8px; padding: 15px; margin-bottom: 15px; text-align: left; }
+        .wish-item strong { color: #94d2bd; font-size: 20px; }
+        .wish-item span { display: block; font-size: 16px; color: #a8dadc; margin-top: 5px; }
     </style>
 </head>
 <body>
@@ -60,21 +68,22 @@
             <div class="section-card">
                 <h2>Cosa vuoi fare oggi?</h2>
                 <div class="menu-grid">
-                    <button onclick="showSection('wishlist-section')">Aggiorna i tuoi desideri</button>
+                    <button onclick="openAddWish()">Aggiungi un nuovo desiderio</button>
+                    <button onclick="showMyWishes()">Gestisci i tuoi desideri salvati</button>
                     <button onclick="showSection('gift-section')">Fai un regalo a qualcuno</button>
                 </div>
-                <button onclick="logout()" style="background: #e63946; width: auto; font-size: 14px; padding: 6px 15px; margin-top: 15px;">Cambia Utente</button>
+                <button onclick="logout()" class="btn-red" style="width: auto; font-size: 14px; padding: 6px 15px; margin-top: 15px; display: inline-block;">Cambia Utente</button>
             </div>
 
             <div id="wishlist-section" class="section-card hidden">
-                <h2>I Miei Desideri</h2>
+                <h2 id="wish-form-title">Nuovo Desiderio</h2>
                 <p>Inserisci i dettagli di qualcosa che ti piacerebbe ricevere.</p>
                 
                 <input type="text" id="wish-desc" placeholder="Cosa desideri? (es. Zaino blu)">
                 <input type="text" id="wish-link" placeholder="Link al sito internet (opzionale)">
                 <input type="text" id="wish-img" placeholder="Indirizzo internet dell'immagine (opzionale)">
                 
-                <input type="text" id="wish-cat" list="cat-list" placeholder="Categoria (seleziona o scrivi tu)">
+                <input type="text" id="wish-cat" list="cat-list" placeholder="Categorie (es. Viaggi, Sport, Abbigliamento)">
                 <datalist id="cat-list">
                     <option value="Abbigliamento">
                     <option value="Elettronica">
@@ -86,8 +95,15 @@
 
                 <input type="text" id="wish-keywords" placeholder="Parole chiave (es. campeggio, outdoor)">
                 
-                <button onclick="addWish()">Salva nella mia Lista</button>
+                <button id="save-wish-btn" onclick="saveWish()">Salva nella mia Lista</button>
                 <div id="wish-status" class="alert-msg"></div>
+            </div>
+
+            <div id="manage-wishes-section" class="section-card hidden">
+                <h2>I Miei Desideri Salvati</h2>
+                <p>Ecco cosa hai inserito finora.</p>
+                <div id="my-wishes-list">
+                    </div>
             </div>
 
             <div id="gift-section" class="section-card hidden">
@@ -111,7 +127,6 @@
     </div>
 
     <script>
-        // Collegamento diretto al tuo Google Apps Script
         const GOOGLE_APP_URL = 'https://script.google.com/macros/s/AKfycbxHVbm-sXKip0X9XKvK0DCM5CYWB6qTd2m9rjy0pT_Rq8YDjoR8_YPKtgvalKH-KC9r2Q/exec';
 
         let myUserId = "";
@@ -119,6 +134,7 @@
         let targetUser = "";
         let targetDesideri = []; 
         let tuttiGliUtenti = [];
+        let editingWishId = null; // Memorizza l'ID del desiderio se lo stiamo modificando
 
         const mappaContesti = {
             "campeggio": ["zaino", "borraccia", "tenda", "sacco", "torcia", "coltello", "fornello", "trekking", "montagna"],
@@ -129,11 +145,9 @@
             "tecnologia": ["elettronica", "cuffie", "smartwatch", "caricatore", "mouse", "tastiera", "computer"]
         };
 
-        // Raccoglie i dati inviandoli ad Apps Script
         async function fetchAPI(action, payload = null) {
             try {
                 if (payload) {
-                    // Invio dati (POST) per creare utenti o desideri
                     const response = await fetch(GOOGLE_APP_URL, {
                         method: 'POST',
                         body: JSON.stringify({ action: action, ...payload }),
@@ -141,7 +155,6 @@
                     });
                     return await response.json();
                 } else {
-                    // Lettura dati (GET) per ottenere utenti o desideri
                     const response = await fetch(`${GOOGLE_APP_URL}?action=${action}`);
                     return await response.json();
                 }
@@ -200,7 +213,6 @@
             if (!nome) return alert("Inserisci un nome valido.");
 
             document.getElementById('reg-status').innerText = "Creazione in corso...";
-
             const res = await fetchAPI('addUser', { nome: nome });
             
             if (!res || !res.success) {
@@ -223,6 +235,7 @@
         function showSection(sectionId) {
             document.getElementById('wishlist-section').classList.add('hidden');
             document.getElementById('gift-section').classList.add('hidden');
+            document.getElementById('manage-wishes-section').classList.add('hidden');
             document.getElementById(sectionId).classList.remove('hidden');
         }
 
@@ -234,19 +247,33 @@
             myUserId = ""; myUserName = "";
             document.getElementById('my-user-select').value = "";
             document.getElementById('main-panel').classList.add('hidden');
-            document.getElementById('wishlist-section').classList.add('hidden');
-            document.getElementById('gift-section').classList.add('hidden');
+            showSection('none'); // Nasconde tutte le sezioni interne
             document.getElementById('auth-panel').classList.remove('hidden');
             loadUsers();
         }
 
-        async function addWish() {
+        // Apre il form vuoto per un NUOVO desiderio
+        function openAddWish() {
+            editingWishId = null;
+            document.getElementById('wish-form-title').innerText = "Nuovo Desiderio";
+            document.getElementById('save-wish-btn').innerText = "Salva nella mia Lista";
+            document.getElementById('wish-desc').value = "";
+            document.getElementById('wish-link').value = "";
+            document.getElementById('wish-img').value = "";
+            document.getElementById('wish-cat').value = "";
+            document.getElementById('wish-keywords').value = "";
+            showSection('wishlist-section');
+        }
+
+        // Salva (o aggiorna) un desiderio
+        async function saveWish() {
             const desc = document.getElementById('wish-desc').value;
             if (!desc) return alert("La descrizione del regalo è obbligatoria.");
 
             document.getElementById('wish-status').innerText = "Salvataggio in corso...";
 
             const payload = {
+                id: editingWishId, // Sarà null se è nuovo, o conterrà l'ID se stiamo modificando
                 utente_id: myUserId,
                 descrizione: desc,
                 link_esterno: document.getElementById('wish-link').value || "",
@@ -255,23 +282,87 @@
                 parole_chiave: document.getElementById('wish-keywords').value || ""
             };
 
-            const res = await fetchAPI('addWish', payload);
+            const action = editingWishId ? 'updateWish' : 'addWish';
+            const res = await fetchAPI(action, payload);
 
             if (!res || !res.success) {
                 alert("Errore durante il salvataggio.");
                 document.getElementById('wish-status').innerText = "";
             } else {
-                document.getElementById('wish-desc').value = "";
-                document.getElementById('wish-link').value = "";
-                document.getElementById('wish-img').value = "";
-                document.getElementById('wish-cat').value = "";
-                document.getElementById('wish-keywords').value = "";
-
-                document.getElementById('wish-status').innerText = "Desiderio salvato nella tua lista!";
-                setTimeout(() => { document.getElementById('wish-status').innerText = ""; }, 3000);
+                document.getElementById('wish-status').innerText = editingWishId ? "Desiderio aggiornato!" : "Desiderio salvato!";
+                setTimeout(() => { 
+                    document.getElementById('wish-status').innerText = ""; 
+                    if(editingWishId) showMyWishes(); // Se stavo modificando, torno alla lista
+                    else openAddWish(); // Se stavo aggiungendo, pulisco il form
+                }, 1500);
             }
         }
 
+        // Scarica e mostra i desideri dell'utente loggato
+        async function showMyWishes() {
+            showSection('manage-wishes-section');
+            const listContainer = document.getElementById('my-wishes-list');
+            listContainer.innerHTML = "<p>Caricamento dei tuoi desideri in corso...</p>";
+
+            const response = await fetch(`${GOOGLE_APP_URL}?action=getWishes&userId=${myUserId}`);
+            try {
+                const data = await response.json();
+                if(data.length === 0) {
+                    listContainer.innerHTML = "<p>Non hai ancora salvato nessun desiderio.</p>";
+                } else {
+                    listContainer.innerHTML = "";
+                    data.forEach(wish => {
+                        const div = document.createElement('div');
+                        div.className = 'wish-item';
+                        div.innerHTML = `
+                            <strong>${wish.descrizione}</strong>
+                            <span>Categorie: ${wish.categoria}</span>
+                            <span>Parole Chiave: ${wish.parole_chiave || "Nessuna"}</span>
+                            <div style="margin-top: 10px; text-align: right;">
+                                <button class="action-btn-small" onclick='editWish(${JSON.stringify(wish)})'>Modifica</button>
+                                <button class="action-btn-small btn-red" onclick='deleteWish("${wish.id}")'>Elimina</button>
+                            </div>
+                        `;
+                        listContainer.appendChild(div);
+                    });
+                }
+            } catch (error) {
+                listContainer.innerHTML = "<p style='color: #e63946;'>Errore durante il caricamento.</p>";
+            }
+        }
+
+        // Prepara il form per la modifica
+        function editWish(wish) {
+            editingWishId = wish.id;
+            document.getElementById('wish-form-title').innerText = "Modifica Desiderio";
+            document.getElementById('save-wish-btn').innerText = "Aggiorna Desiderio";
+            
+            document.getElementById('wish-desc').value = wish.descrizione;
+            document.getElementById('wish-link').value = wish.link_esterno;
+            document.getElementById('wish-img').value = wish.immagine_url;
+            document.getElementById('wish-cat').value = wish.categoria;
+            document.getElementById('wish-keywords').value = wish.parole_chiave;
+            
+            showSection('wishlist-section');
+        }
+
+        // Elimina un desiderio
+        async function deleteWish(wishId) {
+            if(!confirm("Sei sicuro di voler eliminare questo desiderio?")) return;
+            
+            const listContainer = document.getElementById('my-wishes-list');
+            listContainer.innerHTML = "<p>Eliminazione in corso...</p>";
+            
+            const res = await fetchAPI('deleteWish', { id: wishId, utente_id: myUserId });
+            if (res && res.success) {
+                showMyWishes(); // Ricarica la lista aggiornata
+            } else {
+                alert("Errore durante l'eliminazione.");
+                showMyWishes();
+            }
+        }
+
+        // ===== SEZIONE CHAT AI =====
         async function startChat() {
             const select = document.getElementById('target-user-select');
             targetUser = select.value;
@@ -279,11 +370,9 @@
 
             document.getElementById('chat-container').style.display = 'block';
             const nomeTarget = select.options[select.selectedIndex].text;
-            document.getElementById('chat-box').innerHTML = `<div class="message bot-msg">Sto scaricando i dati di ${nomeTarget} da Google Sheets...</div>`;
+            document.getElementById('chat-box').innerHTML = `<div class="message bot-msg">Sto scaricando i dati di ${nomeTarget}...</div>`;
 
-            // Uso fetch per prendere solo i regali specifici dell'utente
             const response = await fetch(`${GOOGLE_APP_URL}?action=getWishes&userId=${targetUser}`);
-            
             try {
                 const data = await response.json();
                 targetDesideri = data; 
@@ -306,7 +395,7 @@
             chatBox.innerHTML += `<div class="message user-msg">Tu: ${input.value}</div>`;
             
             setTimeout(() => {
-                let botReply = "Mmm, ho cercato in tutta la sua lista ma non ho trovato corrispondenze. Prova a chiedermi una categoria specifica o un oggetto preciso.";
+                let botReply = "Mmm, ho cercato in tutta la sua lista ma non ho trovato corrispondenze. Prova a chiedermi una categoria o un oggetto preciso.";
                 
                 if (targetDesideri.length === 0) {
                     botReply = "La lista di questo utente è vuota, non posso estrarre consigli.";
@@ -316,7 +405,7 @@
 
                     if (IsDomandaGenerica) {
                         const listaTesto = targetDesideri.map(r => {
-                            let dettagli = `• <strong>${r.descrizione}</strong> (Categoria: ${r.categoria})`;
+                            let dettagli = `• <strong>${r.descrizione}</strong> (Categorie: ${r.categoria})`;
                             if (r.link_esterno) dettagli += ` - <a href="${r.link_esterno}" target="_blank" style="color: #94d2bd; text-decoration: underline;">Link</a>`;
                             return dettagli;
                         }).join('<br>');
@@ -333,7 +422,7 @@
 
                         const regaliTrovati = targetDesideri.filter(regalo => {
                             const desc = (regalo.descrizione || "").toLowerCase();
-                            const cat = (regalo.categoria || "").toLowerCase();
+                            const cat = (regalo.categoria || "").toLowerCase(); // Ora può contenere più categorie testuali
                             const link = (regalo.link_esterno || "").toLowerCase();
                             const img = (regalo.immagine_url || "").toLowerCase();
                             const keywords = (regalo.parole_chiave || "").toLowerCase();
