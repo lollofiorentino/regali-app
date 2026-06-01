@@ -145,12 +145,19 @@
             "tecnologia": ["elettronica", "cuffie", "smartwatch", "caricatore", "mouse", "tastiera", "computer"]
         };
 
-        // NUOVA LOGICA DI CONTATTO COMPATIBILE AL 100% (SOLO GET)
+       // NUOVA LOGICA DI CONTATTO INDISTRUTTIBILE
         async function callSheetsAPI(action, params = {}) {
             try {
-                // Trasforma tutti i parametri in una stringa di testo allegata al link (?action=abc&nome=pippo...)
-                const queryParams = new URLSearchParams({ action: action, ...params }).toString();
-                const response = await fetch(`${GOOGLE_APP_URL}?${queryParams}`);
+                // Creiamo l'oggetto con i parametri base
+                const tuttiIParametri = { action: action, ...params };
+                
+                // FORZATURA: Trasformiamo e codifichiamo ogni singolo pezzetto di testo 
+                // in modo che sia digeribile da Google senza corrompersi durante il viaggio
+                const queryString = Object.keys(tuttiIParametri)
+                    .map(key => encodeURIComponent(key) + '=' + encodeURIComponent(tuttiIParametri[key]))
+                    .join('&');
+
+                const response = await fetch(`${GOOGLE_APP_URL}?${queryString}`);
                 return await response.json();
             } catch (error) {
                 console.error("Errore di comunicazione:", error);
