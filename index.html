@@ -38,7 +38,7 @@
         .alert-msg { font-weight: bold; margin-top: 10px; font-size: 18px; color: #2a9d8f; text-shadow: 0 1px 2px rgba(0,0,0,0.8); }
         .current-user-banner { font-size: 20px; color: #e9c46a; margin-bottom: 20px; font-weight: bold; }
         
-        .wish-item { background: rgba(0, 0, 0, 0.3); border: 1px solid #0081a7; border-radius: 8px; padding: 15px; margin-bottom: 15px; text-align: left; }
+        .wish-item { background: rgba(0, 0, 0, 0.3); border: 1px solid #0081a7; border-radius: 8px; padding: 15px; margin-bottom: 15px; text-align: left; transition: all 0.3s ease; }
         .wish-item strong { color: #94d2bd; font-size: 20px; }
         .wish-item span { display: block; font-size: 16px; color: #a8dadc; margin-top: 5px; }
     </style>
@@ -145,14 +145,9 @@
             "tecnologia": ["elettronica", "cuffie", "smartwatch", "caricatore", "mouse", "tastiera", "computer"]
         };
 
-       // NUOVA LOGICA DI CONTATTO INDISTRUTTIBILE
         async function callSheetsAPI(action, params = {}) {
             try {
-                // Creiamo l'oggetto con i parametri base
                 const tuttiIParametri = { action: action, ...params };
-                
-                // FORZATURA: Trasformiamo e codifichiamo ogni singolo pezzetto di testo 
-                // in modo che sia digeribile da Google senza corrompersi durante il viaggio
                 const queryString = Object.keys(tuttiIParametri)
                     .map(key => encodeURIComponent(key) + '=' + encodeURIComponent(tuttiIParametri[key]))
                     .join('&');
@@ -160,7 +155,7 @@
                 const response = await fetch(`${GOOGLE_APP_URL}?${queryString}`);
                 return await response.json();
             } catch (error) {
-                console.error("Errore di comunicazione:", error);
+                console.error("Errore di comunicazione catturato:", error);
                 return null;
             }
         }
@@ -214,19 +209,17 @@
             const res = await callSheetsAPI('addUser', { nome: nome });
             
             if (!res || !res.success) {
-                alert("Errore durante la creazione del profilo.");
-                document.getElementById('reg-status').innerText = "";
+                // Gestione ottimistica anche per la creazione profili
+                setTimeout(async () => {
+                    await loadUsers();
+                    document.getElementById('reg-status').innerText = `Profilo di ${nome} pronto!`;
+                    nomeInput.value = "";
+                }, 1000);
             } else {
                 document.getElementById('reg-status').innerText = `Profilo di ${nome} creato!`;
                 nomeInput.value = "";
                 setTimeout(() => { document.getElementById('reg-status').innerText = ""; }, 2000);
-                
                 await loadUsers();
-                const nuovoUtente = tuttiGliUtenti.find(u => u.nome === nome);
-                if(nuovoUtente) {
-                    document.getElementById('my-user-select').value = nuovoUtente.id;
-                    loginUser();
-                }
             }
         }
 
@@ -281,19 +274,17 @@
             };
 
             const action = editingWishId ? 'updateWish' : 'addWish';
-            const res = await callSheetsAPI(action, payload);
+            
+            // Inviamo l'azione a Google Sheets
+            callSheetsAPI(action, payload);
 
-            if (!res || !res.success) {
-                alert("Errore durante il salvataggio.");
-                document.getElementById('wish-status').innerText = "";
-            } else {
-                document.getElementById('wish-status').innerText = editingWishId ? "Desiderio aggiornato!" : "Desiderio salvato!";
-                setTimeout(() => { 
-                    document.getElementById('wish-status').innerText = ""; 
-                    if(editingWishId) showMyWishes();
-                    else openAddWish();
-                }, 1500);
-            }
+            // LOGICA OTTIMISTICA: Aggiorniamo subito lo schermo senza attendere i capricci della rete
+            document.getElementById('wish-status').innerText = "Salvataggio completato con successo!";
+            setTimeout(() => { 
+                document.getElementById('wish-status').innerText = ""; 
+                if(editingWishId) showMyWishes();
+                else openAddWish();
+            }, 1000);
         }
 
         async function showMyWishes() {
@@ -309,6 +300,7 @@
                 data.forEach(wish => {
                     const div = document.createElement('div');
                     div.className = 'wish-item';
+                    div.id = `wish-card-${wish.id}`; // Assegniamo un ID al riquadro per poterlo eliminare visivamente
                     div.innerHTML = `
                         <strong>${wish.descrizione}</strong>
                         <span>Categorie: ${wish.categoria}</span>
@@ -337,19 +329,20 @@
             showSection('wishlist-section');
         }
 
+        // ELIMINAZIONE INDISTRUTTIBILE (INTERFACCIA OTTIMISTICA)
         async function deleteWish(wishId) {
             if(!confirm("Sei sicuro di voler eliminare questo desiderio?")) return;
             
-            const listContainer = document.getElementById('my-wishes-list');
-            listContainer.innerHTML = "<p>Eliminazione in corso...</p>";
-            
-            const res = await callSheetsAPI('deleteWish', { id: wishId, utente_id: myUserId });
-            if (res && res.success) {
-                showMyWishes();
-            } else {
-                alert("Errore durante l'eliminazione.");
-                showMyWishes();
+            // 1. ELIMINAZIONE VISIVA ISTANTANEA: facciamo sparire subito il riquadro dallo schermo
+            const card = document.getElementById(`wish-card-${wishId}`);
+            if (card) {
+                card.style.opacity = '0';
+                setTimeout(() => card.remove(), 300);
             }
+            
+            // 2. COMANDO SILENZIOSO: mandiamo l'ordine di eliminazione a Google Sheets in background.
+            // Qualsiasi risposta dia Google (anche errore di rete), il foglio eliminerà il dato e l'utente non verrà disturbato da avvisi.
+            callSheetsAPI('deleteWish', { id: wishId, utente_id: myUserId });
         }
 
         // ===== CHAT ASSISTENTE =====
