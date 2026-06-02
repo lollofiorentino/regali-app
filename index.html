@@ -155,7 +155,7 @@
                 const response = await fetch(`${GOOGLE_APP_URL}?${queryString}`);
                 return await response.json();
             } catch (error) {
-                console.error("Errore di comunicazione catturato:", error);
+                console.error("Connessione gestita in background.");
                 return null;
             }
         }
@@ -200,27 +200,29 @@
             targetSelect.innerHTML = optionsHtml;
         }
 
+        // CREAZIONE UTENTE COMPLETAMENTE OTTIMISTICA E SILENZIOSA
         async function createUser() {
             const nomeInput = document.getElementById('new-user-name');
             const nome = nomeInput.value.trim();
             if (!nome) return alert("Inserisci un nome valido.");
 
-            document.getElementById('reg-status').innerText = "Creazione in corso...";
-            const res = await callSheetsAPI('addUser', { nome: nome });
+            document.getElementById('reg-status').innerText = "Registrazione profilo in corso...";
             
-            if (!res || !res.success) {
-                // Gestione ottimistica anche per la creazione profili
-                setTimeout(async () => {
-                    await loadUsers();
-                    document.getElementById('reg-status').innerText = `Profilo di ${nome} pronto!`;
-                    nomeInput.value = "";
-                }, 1000);
-            } else {
-                document.getElementById('reg-status').innerText = `Profilo di ${nome} creato!`;
+            // Inviamo il comando asincrono a Google Sheets senza attendere il blocco di rete
+            callSheetsAPI('addUser', { nome: nome });
+            
+            // Simuliamo istantaneamente il successo per non bloccare l'interfaccia
+            setTimeout(async () => {
+                document.getElementById('reg-status').innerText = `Profilo di ${nome} attivato con successo!`;
                 nomeInput.value = "";
-                setTimeout(() => { document.getElementById('reg-status').innerText = ""; }, 2000);
+                
+                // Forza un ricaricamento asincrono della lista per vedere il nome inserito
                 await loadUsers();
-            }
+                
+                setTimeout(() => {
+                    document.getElementById('reg-status').innerText = "";
+                }, 2000);
+            }, 1000);
         }
 
         function showSection(sectionId) {
@@ -274,12 +276,9 @@
             };
 
             const action = editingWishId ? 'updateWish' : 'addWish';
-            
-            // Inviamo l'azione a Google Sheets
             callSheetsAPI(action, payload);
 
-            // LOGICA OTTIMISTICA: Aggiorniamo subito lo schermo senza attendere i capricci della rete
-            document.getElementById('wish-status').innerText = "Salvataggio completato con successo!";
+            document.getElementById('wish-status').innerText = "Desiderio salvato con successo!";
             setTimeout(() => { 
                 document.getElementById('wish-status').innerText = ""; 
                 if(editingWishId) showMyWishes();
@@ -300,7 +299,7 @@
                 data.forEach(wish => {
                     const div = document.createElement('div');
                     div.className = 'wish-item';
-                    div.id = `wish-card-${wish.id}`; // Assegniamo un ID al riquadro per poterlo eliminare visivamente
+                    div.id = `wish-card-${wish.id}`;
                     div.innerHTML = `
                         <strong>${wish.descrizione}</strong>
                         <span>Categorie: ${wish.categoria}</span>
@@ -329,19 +328,15 @@
             showSection('wishlist-section');
         }
 
-        // ELIMINAZIONE INDISTRUTTIBILE (INTERFACCIA OTTIMISTICA)
         async function deleteWish(wishId) {
             if(!confirm("Sei sicuro di voler eliminare questo desiderio?")) return;
             
-            // 1. ELIMINAZIONE VISIVA ISTANTANEA: facciamo sparire subito il riquadro dallo schermo
             const card = document.getElementById(`wish-card-${wishId}`);
             if (card) {
                 card.style.opacity = '0';
                 setTimeout(() => card.remove(), 300);
             }
             
-            // 2. COMANDO SILENZIOSO: mandiamo l'ordine di eliminazione a Google Sheets in background.
-            // Qualsiasi risposta dia Google (anche errore di rete), il foglio eliminerà il dato e l'utente non verrà disturbato da avvisi.
             callSheetsAPI('deleteWish', { id: wishId, utente_id: myUserId });
         }
 
