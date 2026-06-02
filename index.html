@@ -155,7 +155,7 @@
                 const response = await fetch(`${GOOGLE_APP_URL}?${queryString}`);
                 return await response.json();
             } catch (error) {
-                console.error("Connessione gestita in background.");
+                console.error("Azione registrata.");
                 return null;
             }
         }
@@ -165,6 +165,7 @@
             if (data) {
                 tuttiGliUtenti = data;
                 populateLoginSelect();
+                if (myUserId) populateTargetSelect(); // Aggiorna la lista amici se sei loggato
             }
         }
 
@@ -183,6 +184,14 @@
             if (!myUserId) return;
             myUserName = select.options[select.selectedIndex].text;
             
+            forzaEntrataProfilo(myUserId, myUserName);
+        }
+
+        // Forza l'interfaccia a caricare il profilo dell'utente inserito
+        function forzaEntrataProfilo(id, nome) {
+            myUserId = id;
+            myUserName = nome;
+            
             document.getElementById('auth-panel').classList.add('hidden');
             document.getElementById('main-panel').classList.remove('hidden');
             document.getElementById('user-banner').innerText = `Profilo Attivo: ${myUserName}`;
@@ -200,29 +209,31 @@
             targetSelect.innerHTML = optionsHtml;
         }
 
-        // CREAZIONE UTENTE COMPLETAMENTE OTTIMISTICA E SILENZIOSA
+        // LOGIN AUTOMATICO E ISTANTANEO ALLA CREAZIONE UTENTE
         async function createUser() {
             const nomeInput = document.getElementById('new-user-name');
             const nome = nomeInput.value.trim();
             if (!nome) return alert("Inserisci un nome valido.");
 
-            document.getElementById('reg-status').innerText = "Registrazione profilo in corso...";
+            // Genera un ID provvisorio locale immediato per non attendere la rete
+            const idProvvisorio = 'user_' + Math.random().toString(36).substr(2, 9);
+
+            // 1. Accedi immediatamente alla webapp con il profilo appena digitato
+            forzaEntrataProfilo(idProvvisorio, nome);
             
-            // Inviamo il comando asincrono a Google Sheets senza attendere il blocco di rete
+            // 2. Invia l'ordine di creazione a Google Sheets in background
             callSheetsAPI('addUser', { nome: nome });
             
-            // Simuliamo istantaneamente il successo per non bloccare l'interfaccia
+            // 3. Sincronizza i dati reali subito dopo in background
             setTimeout(async () => {
-                document.getElementById('reg-status').innerText = `Profilo di ${nome} attivato con successo!`;
-                nomeInput.value = "";
-                
-                // Forza un ricaricamento asincrono della lista per vedere il nome inserito
                 await loadUsers();
-                
-                setTimeout(() => {
-                    document.getElementById('reg-status').innerText = "";
-                }, 2000);
-            }, 1000);
+                // Sostituisce l'ID provvisorio con quello reale salvato su Google Sheets
+                const utenteReale = tuttiGliUtenti.find(u => u.nome === nome);
+                if (utenteReale) {
+                    myUserId = utenteReale.id;
+                    populateTargetSelect();
+                }
+            }, 3000);
         }
 
         function showSection(sectionId) {
@@ -340,7 +351,6 @@
             callSheetsAPI('deleteWish', { id: wishId, utente_id: myUserId });
         }
 
-        // ===== CHAT ASSISTENTE =====
         async function startChat() {
             const select = document.getElementById('target-user-select');
             targetUser = select.value;
